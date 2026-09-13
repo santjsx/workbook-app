@@ -1,0 +1,3469 @@
+# మా పని పుస్తకం
+
+## Digital Telugu Work Notebook for Masons & Small Contractors
+
+**PRD Version:** 2.0
+**Status:** Build Specification
+**Target:** Production / Play Store quality
+**Primary Platform:** Android
+**Primary User:** Telugu-speaking mason / small construction contractor
+**Primary UX:** Digital physical notebook
+**Primary Requirement:** Extremely simple, reliable, elderly-friendly
+**Connectivity:** Offline-first
+**Distribution:** Google Play + GitHub APK distribution
+**Development Environment:** Antigravity
+
+---
+
+# 1. PRODUCT DEFINITION
+
+## One-sentence definition
+
+**“మేస్త్రీ రోజూ పుస్తకంలో రాసుకునే పని లెక్కల పుస్తకాన్ని, అదే సహజమైన Telugu అనుభూతితో ఫోన్‌లోకి తీసుకురావడం.”**
+
+The application is NOT:
+
+* accounting software
+* ERP
+* payroll software
+* CRM
+* inventory system
+* project management software
+* invoicing software
+
+It is a:
+
+# Digital Work Notebook
+
+The user thinks in:
+
+**పని → రోజు → వచ్చిన డబ్బు → కూలీల డబ్బు → ఇతర ఖర్చు → మిగిలింది**
+
+The application must think in the same structure.
+
+---
+
+# 2. PRODUCT NORTH STAR
+
+The application succeeds if the father can use it and say:
+
+> **“పుస్తకంలో ఎలా రాస్తానో అలాగే ఇక్కడ రాస్తున్నా. లెక్క మాత్రం ఫోన్ చూసుకుంటుంది.”**
+
+It fails if he says:
+
+> **“ఏది ఎక్కడ నొక్కాలో అర్థం కావడం లేదు.”**
+
+Technical sophistication is irrelevant if the second statement happens.
+
+---
+
+# 3. TECH STACK
+
+## Recommended Stack
+
+### Android
+
+**Kotlin**
+
+Primary programming language.
+
+Reason:
+
+* first-class Android support
+* strong type safety
+* excellent coroutine support
+* mature ecosystem
+* long-term maintainability
+
+---
+
+## UI
+
+### Jetpack Compose
+
+Use Compose as the complete UI layer.
+
+Benefits:
+
+* modern Android UI architecture
+* easy custom notebook UI
+* easier state-driven screens
+* custom animations
+* reusable design system
+
+Compose is actively maintained in the AndroidX ecosystem.
+
+---
+
+# 4. ARCHITECTURE
+
+Use:
+
+# Clean Architecture + MVVM
+
+Layers:
+
+```text
+UI
+↓
+ViewModel
+↓
+Use Cases / Domain
+↓
+Repositories
+↓
+Room Database
+```
+
+Never put business calculations directly inside UI composables.
+
+---
+
+# 5. DATABASE
+
+## Room + SQLite
+
+Use Room as the local database layer.
+
+Room provides an abstraction over SQLite and is appropriate for structured local application data.
+
+The database is the application's:
+
+# Single Source of Truth
+
+UI state must not become the permanent source of financial information.
+
+---
+
+# 6. REACTIVE DATA
+
+Use:
+
+**Kotlin Coroutines + Flow**
+
+for database observation and UI state updates.
+
+Example:
+
+When a ₹500 expense is added:
+
+Database changes
+↓
+Repository emits update
+↓
+ViewModel receives update
+↓
+Summary recalculates
+↓
+UI updates
+
+No manual refresh button should be necessary.
+
+---
+
+# 7. DEPENDENCY INJECTION
+
+Use:
+
+**Hilt**
+
+for:
+
+* database
+* repositories
+* use cases
+* ViewModels
+* update manager
+* backup manager
+
+Avoid manually constructing large dependency graphs.
+
+---
+
+# 8. NAVIGATION
+
+Use:
+
+**Jetpack Navigation Compose**
+
+Navigation should preserve:
+
+* current work
+* current date
+* current screen
+* unsaved-state handling
+
+Back navigation must never unexpectedly lose data.
+
+---
+
+# 9. LOCAL STORAGE
+
+Use Room for structured data.
+
+Use Android app-private storage for:
+
+* backup files
+* temporary exports
+* update metadata
+* generated reports
+
+Do not store financial records in random JSON files as the primary database.
+
+---
+
+# 10. MONEY REPRESENTATION
+
+This is critical.
+
+Never store money as floating-point values.
+
+Use an integer representation of the smallest supported currency unit.
+
+For example:
+
+₹500 → internal integer representation.
+
+This prevents floating-point calculation errors.
+
+Display using Indian formatting:
+
+₹1,000
+₹10,000
+₹1,00,000
+₹10,00,000
+
+---
+
+# 11. DATE/TIME
+
+Store transaction dates using a reliable date representation.
+
+Do not rely on formatted strings for sorting.
+
+Store:
+
+* transaction date
+* created timestamp
+* updated timestamp
+
+The displayed date should be:
+
+**13 సెప్టెంబర్ 2026**
+
+not:
+
+**2026-09-13**
+
+---
+
+# 12. TIMEZONE
+
+Use the device's local timezone for user-facing dates.
+
+A transaction entered on September 13 must not suddenly appear under September 12 because of UTC conversion.
+
+Internally store timestamps safely.
+
+Display dates according to the device's current local timezone.
+
+---
+
+# 13. DATA MODEL
+
+## Work
+
+Fields:
+
+* id
+* name
+* location
+* ownerName
+* phone
+* notes
+* startDate
+* completionDate
+* status
+* createdAt
+* updatedAt
+
+Status:
+
+* ACTIVE
+* COMPLETED
+* ARCHIVED
+
+---
+
+# 14. Daily Page
+
+Fields:
+
+* id
+* workId
+* date
+* notes
+* createdAt
+* updatedAt
+
+Unique logical constraint:
+
+**workId + date**
+
+There should be one daily page per work per date.
+
+Multiple financial entries can belong to the same daily page.
+
+---
+
+# 15. Income Entry
+
+Fields:
+
+* id
+* workId
+* dailyPageId
+* amount
+* source
+* reason
+* note
+* date
+* createdAt
+* updatedAt
+* deletedAt if soft deletion is used
+
+---
+
+# 16. Worker
+
+Fields:
+
+* id
+* name
+* role
+* phone optional
+* active/inactive
+* createdAt
+* updatedAt
+
+Worker names must not be globally unique.
+
+Two people may both be called:
+
+**రవి**
+
+Therefore the application must never assume name = identity.
+
+---
+
+# 17. Labour Payment
+
+Fields:
+
+* id
+* workId
+* dailyPageId
+* workerId
+* amount
+* note
+* date
+* createdAt
+* updatedAt
+
+---
+
+# 18. Expense
+
+Fields:
+
+* id
+* workId
+* dailyPageId
+* category
+* amount
+* note
+* date
+* createdAt
+* updatedAt
+
+---
+
+# 19. Expense Category
+
+Default categories:
+
+* సిమెంట్
+* ఇసుక
+* ఇటుకలు
+* రవాణా
+* టీ / తిండి
+* నీళ్లు
+* పనిముట్లు
+* ఇతర
+
+Custom categories must be supported.
+
+---
+
+# 20. CORE CALCULATIONS
+
+For each Work:
+
+### Total received
+
+Sum of all valid income records.
+
+### Labour total
+
+Sum of all labour payment records.
+
+### Other expense total
+
+Sum of all expense records.
+
+### Total expense
+
+```text
+labour + other expenses
+```
+
+### Remaining
+
+```text
+income - total expense
+```
+
+Display:
+
+**వచ్చింది**
+
+**కూలీలకు**
+
+**ఇతర ఖర్చు**
+
+**మొత్తం ఖర్చు**
+
+**మిగిలింది**
+
+---
+
+# 21. IMPORTANT ACCOUNTING TERMINOLOGY RULE
+
+Never label:
+
+**మిగిలింది**
+
+as:
+
+**Profit**
+
+because the application does not know:
+
+* contract value
+* unpaid work
+* owner's outstanding amount
+* business overhead
+* personal withdrawals
+* taxes
+* depreciation
+* other costs
+
+The application only knows recorded money.
+
+Therefore:
+
+# “మిగిలింది”
+
+is correct.
+
+---
+
+# 22. MULTIPLE WORKS
+
+This is a core feature.
+
+Example:
+
+### Work 1
+
+రమేష్ ఇల్లు
+
+### Work 2
+
+శేఖర్ ఇల్లు
+
+### Work 3
+
+లక్ష్మి ఇల్లు
+
+Each work has independent:
+
+* dates
+* income
+* workers
+* labour payments
+* expenses
+* notes
+* totals
+
+Never combine them accidentally.
+
+---
+
+# 23. SAME-DAY MULTIPLE WORKS
+
+Must support:
+
+September 13:
+
+Morning:
+
+**రమేష్ ఇల్లు**
+
+₹5,000
+
+Afternoon:
+
+**శేఖర్ ఇల్లు**
+
+₹3,000
+
+Both remain separate.
+
+The global “Today” screen may show:
+
+**ఈ రోజు — 2 పనులు**
+
+but each work has its own calculation.
+
+---
+
+# 24. HOME SCREEN
+
+The home screen should NOT resemble a finance dashboard.
+
+It should resemble the front page of a personal notebook.
+
+---
+
+## Header
+
+Large:
+
+**ఈ రోజు**
+
+**13 సెప్టెంబర్ 2026**
+
+Secondary:
+
+**ఈ రోజు చేసిన పనులు**
+
+---
+
+# 25. TODAY WORK CARDS
+
+Example:
+
+```text
+┌─────────────────────────────┐
+│ 🏠 రమేష్ ఇల్లు              │
+│                             │
+│ ఈ రోజు పని చేశాం            │
+│                             │
+│ ₹5,000 వచ్చింది              │
+│ ₹2,300 ఖర్చు                │
+└─────────────────────────────┘
+```
+
+Card must be tappable as a whole.
+
+No tiny “open” button.
+
+---
+
+# 26. PRIMARY ACTION
+
+Large bottom action:
+
+# ＋ కొత్త పని
+
+Secondary quick actions:
+
+**＋ వచ్చిన డబ్బు**
+
+**＋ కూలీల డబ్బు**
+
+**＋ ఖర్చు**
+
+These should appear only where context is clear.
+
+---
+
+# 27. CONTEXT-AWARE ENTRY
+
+If the user is already inside:
+
+**రమేష్ ఇల్లు**
+
+and taps:
+
+**＋ ఖర్చు**
+
+the app must NOT ask:
+
+> “ఏ పనికి?”
+
+It already knows.
+
+This removes unnecessary cognitive load.
+
+---
+
+# 28. NEW WORK
+
+Screen:
+
+# “ఈ పని ఎక్కడ?”
+
+Large field:
+
+**ఇంటి పేరు / చోటు**
+
+Examples:
+
+* రమేష్ ఇల్లు
+* శంకర్ గారి ఇల్లు
+* మియాపూర్ ఇల్లు
+* సాయి నగర్ ఇల్లు
+
+Optional:
+
+**ఇంటి ఓనర్ పేరు**
+
+**ఫోన్ నంబర్**
+
+**చిన్న గమనిక**
+
+Button:
+
+# పని మొదలు పెట్టు
+
+---
+
+# 29. REQUIRED VS OPTIONAL
+
+Required:
+
+* work name
+
+Optional:
+
+* location
+* owner
+* phone
+* notes
+
+Do NOT force the user to provide unnecessary information.
+
+---
+
+# 30. WORK SCREEN
+
+Header:
+
+**← రమేష్ ఇల్లు**
+
+Subheader:
+
+**10 సెప్టెంబర్ నుంచి**
+
+Large summary:
+
+```text
+వచ్చింది
+₹80,000
+
+కూలీలకు
+₹32,000
+
+ఇతర ఖర్చు
+₹8,500
+
+మొత్తం ఖర్చు
+₹40,500
+
+మిగిలింది
+₹39,500
+```
+
+---
+
+# 31. NOTEBOOK MODE
+
+This is the defining visual feature.
+
+The work is represented as a notebook.
+
+Each date is a page.
+
+Example:
+
+```text
+┌──────────────────────────┐
+│       13 సెప్టెంబర్       │
+│                          │
+│  ఈ రోజు చేసిన పని:       │
+│  గోడ కట్టడం              │
+│                          │
+│  వచ్చిన డబ్బు             │
+│  ₹5,000                  │
+│                          │
+│  కూలీల డబ్బు              │
+│  ₹2,100                  │
+│                          │
+│  ఇతర ఖర్చు               │
+│  ₹200                    │
+│                          │
+│  ─────────────────────   │
+│  మిగిలింది ₹2,700        │
+└──────────────────────────┘
+```
+
+---
+
+# 32. PAGE TURNING
+
+Horizontal swipe:
+
+**← previous day**
+
+**next day →**
+
+Use a subtle physical-page animation.
+
+Requirements:
+
+* < approximately 300–400 ms perceived transition
+* no lag
+* no blocking interaction
+* reduced-motion option
+* accessible alternative buttons
+
+Always provide visible:
+
+**← వెనక్కి**
+
+**ముందుకు →**
+
+Do not make swipe the only method.
+
+---
+
+# 33. DATE NAVIGATION
+
+Provide:
+
+### 📅 తేదీ ఎంచుకో
+
+Date picker should allow:
+
+* previous dates
+* today
+* future dates with confirmation
+
+---
+
+# 34. FUTURE DATE PROTECTION
+
+If user selects a future date:
+
+Show:
+
+**“ఇది రాబోయే తేదీ. ఈ తేదీకి లెక్క రాయాలా?”**
+
+Buttons:
+
+**వద్దు**
+
+**రాయాలి**
+
+Do not silently allow future financial records.
+
+---
+
+# 35. TODAY ENTRY
+
+Daily page sections:
+
+### ఈ రోజు చేసిన పని
+
+Free text.
+
+### వచ్చిన డబ్బు
+
+Income list.
+
+### కూలీల డబ్బు
+
+Worker payment list.
+
+### ఇతర ఖర్చు
+
+Expense list.
+
+### ఈ రోజు లెక్క
+
+Automatic summary.
+
+---
+
+# 36. INCOME ENTRY
+
+Title:
+
+# వచ్చిన డబ్బు
+
+Field:
+
+**ఎంత వచ్చింది?**
+
+₹ _______
+
+Optional:
+
+**ఎవరి దగ్గర నుంచి?**
+
+**ఏం కోసం?**
+
+Button:
+
+# దాచు
+
+---
+
+# 37. MULTIPLE INCOME PAYMENTS
+
+Allowed:
+
+September 10 → ₹20,000
+
+September 13 → ₹15,000
+
+September 15 → ₹10,000
+
+Never overwrite.
+
+---
+
+# 38. WORKER ENTRY
+
+Title:
+
+# కూలీల డబ్బు
+
+Button:
+
+**＋ కూలీ చేర్చు**
+
+Fields:
+
+**పేరు**
+
+**పని**
+
+**ఎంత ఇచ్చావు?**
+
+₹ _______
+
+Button:
+
+**దాచు**
+
+---
+
+# 39. WORKER QUICK SELECTION
+
+When typing:
+
+**రవి**
+
+show:
+
+**రవి — మేస్త్రీ**
+
+**రవి — కూలీ**
+
+if existing workers match.
+
+Do not automatically merge people.
+
+---
+
+# 40. SAME-NAME WORKERS
+
+Support:
+
+రవి — మేస్త్రీ
+
+రవి — కూలీ
+
+They are separate people unless the user chooses the same saved worker.
+
+---
+
+# 41. REPEATED WORKER PAYMENTS
+
+Allowed.
+
+Example:
+
+రవి ₹500
+రవి ₹500
+
+These are two separate records.
+
+Never automatically merge them.
+
+---
+
+# 42. DUPLICATE WARNING
+
+If the user creates an identical entry within a very short period:
+
+Show:
+
+**“ఇదే లెక్క ఇప్పుడే రాశారు. మళ్లీ రాయాలా?”**
+
+Buttons:
+
+**మళ్లీ రాయాలి**
+
+**వద్దు**
+
+This is a warning, NOT a blocker.
+
+---
+
+# 43. EXPENSE ENTRY
+
+Title:
+
+# ఖర్చు
+
+Question:
+
+**ఏం ఖర్చయ్యింది?**
+
+Quick categories:
+
+* సిమెంట్
+* ఇసుక
+* ఇటుకలు
+* రవాణా
+* టీ / తిండి
+* నీళ్లు
+* పనిముట్లు
+* ఇతర
+
+Then:
+
+**ఎంత?**
+
+₹ _______
+
+Button:
+
+**దాచు**
+
+---
+
+# 44. CUSTOM EXPENSE
+
+If user chooses:
+
+**ఇతర**
+
+allow:
+
+**ఏం ఖర్చయ్యింది?**
+
+Free text.
+
+Do not force category management.
+
+---
+
+# 45. DAILY SUMMARY
+
+At bottom:
+
+```text
+ఈ రోజు లెక్క
+
+వచ్చింది       ₹5,000
+కూలీలకు       ₹2,100
+ఇతర ఖర్చు     ₹200
+
+మొత్తం ఖర్చు  ₹2,300
+
+మిగిలింది     ₹2,700
+```
+
+---
+
+# 46. WORK SUMMARY
+
+Work summary should update automatically.
+
+No refresh.
+
+No “calculate” button.
+
+---
+
+# 47. WORK HISTORY
+
+Screen:
+
+# నా పనులు
+
+Each card:
+
+**రమేష్ ఇల్లు**
+
+10 సెప్టెంబర్ నుండి
+
+**ఇంకా జరుగుతోంది**
+
+or:
+
+**పని పూర్తయ్యింది**
+
+---
+
+# 48. SEARCH
+
+Search everything relevant:
+
+* work name
+* location
+* worker
+* expense
+* notes
+
+Example:
+
+Search:
+
+**రవి**
+
+Results:
+
+**రమేష్ ఇల్లు**
+
+11 సెప్టెంబర్
+
+రవి — ₹800
+
+---
+
+# 49. SEARCH EMPTY STATE
+
+Show:
+
+**“ఇది దొరకలేదు.”**
+
+Not:
+
+“No results found.”
+
+Optional:
+
+**మరోసారి వెతుకు**
+
+---
+
+# 50. EDITING
+
+Every financial entry can be edited.
+
+Tap entry:
+
+**లెక్క మార్చాలా?**
+
+Actions:
+
+**మార్చు**
+
+**తీసేయి**
+
+**వద్దు**
+
+---
+
+# 51. DELETE
+
+Never immediately destroy important financial data without confirmation.
+
+Confirmation:
+
+**“ఈ లెక్కను తీసేయాలా?”**
+
+Buttons:
+
+**తీసేయి**
+
+**వద్దు**
+
+---
+
+# 52. UNDO
+
+After deletion:
+
+**“లెక్క తీసేశాం”**
+
+Action:
+
+**మళ్లీ పెట్టు**
+
+Undo must restore the exact original record.
+
+---
+
+# 53. SOFT DELETE
+
+Prefer soft deletion internally.
+
+Deleted records can be retained until a defined cleanup/backup policy.
+
+Totals exclude deleted records.
+
+This gives better recovery and auditability.
+
+---
+
+# 54. EDIT AUDIT
+
+For high-value financial reliability, maintain internal metadata:
+
+* createdAt
+* updatedAt
+* deletedAt
+
+Optional future audit history can record:
+
+* old amount
+* new amount
+* old date
+* new date
+
+Do not expose audit complexity to the father in Version 1.
+
+---
+
+# 55. WORK COMPLETION
+
+Button:
+
+# పని పూర్తయ్యింది
+
+Confirmation:
+
+**“ఈ పని పూర్తయ్యిందా?”**
+
+Buttons:
+
+**పూర్తయ్యింది**
+
+**ఇంకా ఉంది**
+
+---
+
+# 56. COMPLETED WORK
+
+Completed work becomes visually archived.
+
+But:
+
+# NEVER LOCK THE DATA COMPLETELY.
+
+User may still need to:
+
+* receive payment
+* correct an old entry
+* add an expense
+* add follow-up work
+
+---
+
+# 57. PAYMENT AFTER COMPLETION
+
+Example:
+
+Work completed:
+
+10 September.
+
+Payment received:
+
+15 September.
+
+User can open the work and add:
+
+15 September → ₹10,000
+
+This must be supported.
+
+---
+
+# 58. REOPEN WORK
+
+Option:
+
+# పని మళ్లీ మొదలు పెట్టు
+
+All old records remain.
+
+No duplicate work should be created automatically.
+
+---
+
+# 59. EMPTY STATES
+
+No works:
+
+**“ఇంకా పని రాయలేదు.”**
+
+Button:
+
+**＋ కొత్త పని**
+
+No daily records:
+
+**“ఈ రోజు ఇంకా ఏ లెక్కా లేదు.”**
+
+Button:
+
+**ఈ రోజు లెక్క రాయండి**
+
+No expenses:
+
+**“ఇంకా ఖర్చు ఏదీ లేదు.”**
+
+---
+
+# 60. OFFLINE-FIRST
+
+This is mandatory.
+
+The following must work with:
+
+**ZERO INTERNET**
+
+* create work
+* edit work
+* add income
+* add worker
+* add labour
+* add expense
+* calculate totals
+* browse history
+* search
+* delete
+* undo
+* backup locally
+
+No core transaction depends on the network.
+
+---
+
+# 61. SAVE GUARANTEE
+
+When the user taps:
+
+**దాచు**
+
+the application must persist the transaction before reporting successful save.
+
+Do not show:
+
+**“దాచాం”**
+
+before persistence has actually succeeded.
+
+---
+
+# 62. APP KILL EDGE CASE
+
+Scenario:
+
+User saves ₹5,000.
+
+Immediately:
+
+* app is killed
+* phone restarts
+* battery dies
+
+After reopening:
+
+₹5,000 must still exist.
+
+---
+
+# 63. DOUBLE TAP EDGE CASE
+
+User rapidly taps:
+
+**దాచు**
+
+10 times.
+
+System must not create 10 duplicate entries.
+
+The save operation must be protected against duplicate submission from the same UI action.
+
+---
+
+# 64. BACK BUTTON EDGE CASE
+
+If unsaved information exists:
+
+**“ఇంకా రాయడం పూర్తి కాలేదు. బయటికి వెళ్లాలా?”**
+
+Buttons:
+
+**బయటికి వెళ్లు**
+
+**ఇక్కడే ఉండు**
+
+If no unsaved information:
+
+navigate normally.
+
+---
+
+# 65. ROTATION / CONFIGURATION CHANGE
+
+The application must not lose partially entered information during:
+
+* rotation
+* activity recreation
+* system memory pressure
+
+Use proper ViewModel/state restoration mechanisms.
+
+---
+
+# 66. LOW STORAGE
+
+If device storage becomes critically low:
+
+Show:
+
+**“ఫోన్‌లో ఖాళీ స్థలం చాలా తక్కువగా ఉంది. కొంచెం స్థలం ఖాళీ చేసి మళ్లీ ప్రయత్నించండి.”**
+
+Never silently discard the entry.
+
+---
+
+# 67. DATABASE FAILURE
+
+If database write fails:
+
+Do not pretend success.
+
+Show:
+
+**“లెక్క దాచలేకపోయాం. మళ్లీ ప్రయత్నించండి.”**
+
+Preserve the user's entered information if possible.
+
+---
+
+# 68. CORRUPTED DATABASE
+
+Application must have a recovery strategy.
+
+At minimum:
+
+* detect database initialization failure
+* protect existing data
+* offer backup/recovery path
+* never automatically wipe database
+
+---
+
+# 69. BACKUP
+
+Settings:
+
+# బ్యాకప్
+
+Options:
+
+**బ్యాకప్ ఫైల్ తయారు చేయి**
+
+**బ్యాకప్ నుంచి పెట్టు**
+
+---
+
+# 70. BACKUP CONTENT
+
+Backup should contain:
+
+* works
+* daily pages
+* income
+* workers
+* labour payments
+* expenses
+* categories
+* relevant settings
+
+It should NOT depend on a server.
+
+---
+
+# 71. BACKUP VALIDATION
+
+Every backup must contain:
+
+* schema version
+* application version
+* backup creation date
+* checksum/integrity information
+* data payload
+
+On restore:
+
+Validate before modifying the database.
+
+---
+
+# 72. RESTORE SAFETY
+
+Never overwrite current data immediately.
+
+Flow:
+
+**Backup select**
+
+↓
+
+Validate
+
+↓
+
+Show:
+
+**“ఈ బ్యాకప్ 13 సెప్టెంబర్ 2026 న తయారు చేశారు.”**
+
+↓
+
+**“ముందు ప్రస్తుత డేటాకు బ్యాకప్ తీసుకుందామా?”**
+
+↓
+
+Confirm
+
+↓
+
+Restore
+
+---
+
+# 73. RESTORE FAILURE
+
+If restore fails:
+
+Current database must remain untouched.
+
+Use transaction-style restore or staged replacement.
+
+---
+
+# 74. EXPORT
+
+Optional production feature:
+
+Generate:
+
+**పని లెక్క**
+
+for a selected work.
+
+Could contain:
+
+* work name
+* date range
+* total received
+* labour
+* other expenses
+* remaining amount
+
+Future output:
+
+PDF / shareable summary.
+
+---
+
+# 75. VOICE INPUT
+
+Highly recommended but must be safe.
+
+User says:
+
+> “రవి కి ఎనిమిది వందలు ఇచ్చాను”
+
+System extracts:
+
+**రవి**
+
+**₹800**
+
+But NEVER automatically save financial information.
+
+Show:
+
+```text
+రవి
+₹800
+
+ఇది రాయాలా?
+
+[ రాయాలి ] [ వద్దు ]
+```
+
+---
+
+# 76. VOICE FAILURE
+
+If recognition is uncertain:
+
+Do not guess.
+
+Example:
+
+Speech:
+
+> “రవి కి ఎనిమిది వందలు”
+
+Recognition uncertainty:
+
+**“నేను సరిగ్గా అర్థం చేసుకోలేకపోయాను.”**
+
+Allow manual entry.
+
+---
+
+# 77. LANGUAGE
+
+Primary language:
+
+# Natural Telugu
+
+No machine-translated corporate Telugu.
+
+Use familiar words.
+
+Examples:
+
+Bad:
+
+**వ్యయాన్ని నమోదు చేయండి**
+
+Good:
+
+**ఏం ఖర్చయ్యింది?**
+
+Bad:
+
+**కార్మికుల పారితోషికం**
+
+Good:
+
+**కూలీల డబ్బు**
+
+Bad:
+
+**ఆదాయం**
+
+Good:
+
+**వచ్చిన డబ్బు**
+
+Bad:
+
+**నమోదు చేయి**
+
+Good:
+
+**దాచు**
+
+---
+
+# 78. TYPOGRAPHY
+
+Telugu must be extremely readable.
+
+Use a production-quality Telugu Unicode font.
+
+Requirements:
+
+* large body text
+* large numbers
+* strong contrast
+* generous line spacing
+* no decorative font for important information
+
+---
+
+# 79. ELDERLY UX
+
+Target user may have:
+
+* reduced eyesight
+* slower reading
+* less tolerance for complex navigation
+* larger finger touch area requirement
+
+Therefore:
+
+Buttons must be:
+
+* large
+* visually distinct
+* text-labelled
+* easy to tap
+
+No tiny icon-only controls for critical actions.
+
+---
+
+# 80. ICON RULE
+
+Icons supplement text.
+
+They do not replace text.
+
+Bad:
+
+🗑️
+
+Better:
+
+🗑️ **తీసేయి**
+
+Bad:
+
+✓
+
+Better:
+
+✓ **దాచు**
+
+---
+
+# 81. COLOUR SYSTEM
+
+Use a restrained notebook palette.
+
+Primary:
+
+warm paper tone.
+
+Text:
+
+dark neutral.
+
+Accent:
+
+single brand accent.
+
+Semantic:
+
+green → money received
+
+red → destructive action
+
+But never communicate meaning using colour alone.
+
+---
+
+# 82. VISUAL LANGUAGE
+
+The visual system should resemble:
+
+* premium Indian notebook
+* clean handwriting ledger
+* subtle paper texture
+* ruled lines
+* natural page edges
+
+Avoid:
+
+* cartoonish notebook graphics
+* fake leather textures
+* excessive shadows
+* gimmicky 3D page curls
+* childish illustrations
+
+---
+
+# 83. ANIMATION
+
+Animations should communicate physicality.
+
+Examples:
+
+* page turn
+* entry appearing on page
+* subtle saved confirmation
+
+Never use:
+
+* bouncing UI
+* excessive motion
+* slow transitions
+
+Reduced-motion setting must disable decorative animations.
+
+---
+
+# 84. ACCESSIBILITY
+
+Support:
+
+* large text
+* system font scaling
+* high contrast
+* TalkBack-compatible labels
+* content descriptions
+* keyboard navigation where relevant
+* reduced motion
+
+UI must remain usable when Android font size is increased.
+
+---
+
+# 85. FONT SCALING EDGE CASE
+
+At maximum supported system font size:
+
+* buttons must not clip
+* Telugu text must not overlap
+* amount must remain visible
+* cards must expand vertically
+* page navigation must remain usable
+
+---
+
+# 86. NAVIGATION
+
+Bottom navigation:
+
+### 🏠 ఈ రోజు
+
+### 📖 నా పనులు
+
+### 🔍 వెతుకు
+
+### ⚙️ సెట్టింగ్స్
+
+No more than four primary destinations.
+
+---
+
+# 87. APP STARTUP
+
+The application should open directly to:
+
+# ఈ రోజు
+
+unless the user was intentionally returning to another context.
+
+Do not show:
+
+* splash advertisements
+* onboarding every time
+* login screen
+* unnecessary dashboard
+
+---
+
+# 88. FIRST LAUNCH
+
+One short introduction:
+
+**“మీ పని లెక్కలు పుస్తకంలా ఇక్కడే రాసుకోండి.”**
+
+Button:
+
+**మొదలు పెట్టు**
+
+Then:
+
+**＋ కొత్త పని**
+
+No multi-page tutorial.
+
+---
+
+# 89. NO ACCOUNT REQUIRED
+
+Version 1 should not require:
+
+* email
+* password
+* Google login
+* phone OTP
+
+The father should be able to use the app immediately.
+
+---
+
+# 90. APP LOCK
+
+Optional:
+
+* PIN
+* biometric authentication
+
+But if enabled, recovery must be clear.
+
+Never create a lock that can permanently destroy access to data.
+
+---
+
+# 91. GITHUB OTA UPDATE SYSTEM
+
+This is an important addition.
+
+The application must support:
+
+# GitHub Release Updates
+
+for APK installations distributed outside Google Play.
+
+---
+
+# 92. TWO UPDATE CHANNELS
+
+## Channel A — Google Play
+
+If app was installed from Google Play:
+
+Use:
+
+**Google Play In-App Updates**
+
+Google officially provides an In-App Update API for Android applications.
+
+Use:
+
+* flexible update for normal releases
+* immediate update for critical security/data-loss fixes
+
+---
+
+## Channel B — GitHub APK
+
+If app was installed from GitHub / direct APK:
+
+Use:
+
+**GitHub Releases**
+
+GitHub Releases support versioned software packages and binary release assets.
+
+---
+
+# 93. GITHUB UPDATE ARCHITECTURE
+
+Repository:
+
+```text
+github.com/<owner>/<repo>
+```
+
+Releases:
+
+```text
+v1.0.0
+v1.0.1
+v1.1.0
+...
+```
+
+Release asset:
+
+```text
+app-release.apk
+```
+
+Optional:
+
+```text
+release.json
+```
+
+---
+
+# 94. UPDATE CHECK FLOW
+
+On app launch:
+
+1. Open app.
+2. Read installed version.
+3. Check whether update checking is enabled.
+4. If online, query configured GitHub release endpoint.
+5. Determine latest compatible version.
+6. Compare versions.
+7. If no update → do nothing.
+8. If optional update → show unobtrusive notification.
+9. If critical update → show clear update screen.
+
+Do NOT check GitHub on every screen.
+
+---
+
+# 95. UPDATE FREQUENCY
+
+Do not repeatedly hammer GitHub.
+
+Recommended:
+
+* check on app launch
+* enforce a minimum interval
+* optionally check manually from Settings
+
+Cache the last successful check.
+
+Example:
+
+**Last checked: today**
+
+---
+
+# 96. UPDATE SCREEN
+
+Natural Telugu:
+
+# కొత్త వెర్షన్ వచ్చింది
+
+Example:
+
+**మా పని పుస్తకం 1.4.0**
+
+**కొత్తవి:**
+
+* లెక్కలు మరింత వేగంగా
+* బ్యాకప్ మెరుగుపరిచాం
+* కొన్ని సమస్యలు సరిచేశాం
+
+Buttons:
+
+**ఇప్పుడే పెట్టు**
+
+**తర్వాత**
+
+---
+
+# 97. CRITICAL UPDATE
+
+For serious bugs:
+
+# “ఈ కొత్త వెర్షన్ పెట్టడం మంచిది.”
+
+For a genuinely dangerous bug:
+
+# “ఈ వెర్షన్‌లో ముఖ్యమైన సమస్య సరిచేశాం. కొత్త వెర్షన్ పెట్టండి.”
+
+Do not use alarmist language unless necessary.
+
+---
+
+# 98. GITHUB APK SECURITY
+
+This is critical.
+
+Never trust a random APK URL returned from arbitrary GitHub content.
+
+The app must only accept releases from the configured trusted repository.
+
+Validate:
+
+* repository owner
+* repository name
+* release tag
+* asset name
+* version
+* package/application ID
+* signing certificate
+
+The new APK must be signed with the same application signing identity as the installed application.
+
+Otherwise Android will reject the update rather than treating it as a legitimate upgrade.
+
+---
+
+# 99. APK DOWNLOAD
+
+Download to an app-private temporary location.
+
+Do not overwrite the existing application.
+
+Verify:
+
+* HTTP success
+* expected file type
+* file size
+* checksum if supplied
+* signature compatibility before installation where possible
+
+---
+
+# 100. CHECKSUM
+
+Every GitHub release should preferably publish a SHA-256 checksum.
+
+Example concept:
+
+```text
+app-release.apk
+SHA-256: ...
+```
+
+The application verifies the downloaded APK before presenting installation.
+
+If checksum fails:
+
+**“అప్‌డేట్ ఫైల్ సరిగ్గా లేదు. మళ్లీ ప్రయత్నించండి.”**
+
+Never install it.
+
+---
+
+# 101. APK INSTALLATION
+
+The application cannot silently replace itself through a normal user-installed APK workflow.
+
+The update flow must launch Android's appropriate package installer/user confirmation flow.
+
+Explain simply:
+
+**“కొత్త వెర్షన్ పెట్టడానికి ఫోన్ అడిగిన అనుమతిని ఇవ్వండి.”**
+
+Never pretend installation happened before Android confirms it.
+
+---
+
+# 102. UNKNOWN SOURCES
+
+If the user installed the app from GitHub, Android may require permission to install unknown apps.
+
+The app should:
+
+1. detect installation restriction
+2. explain it
+3. take user to the appropriate Android settings
+4. allow the user to return
+5. continue installation
+
+Do not permanently ask for this permission.
+
+---
+
+# 103. PLAY STORE INSTALLATION
+
+If installed from Google Play:
+
+Do not redirect the user to GitHub for normal updates.
+
+Use Google Play updates.
+
+This prevents:
+
+* signature conflicts
+* distribution confusion
+* Play Store update problems
+* user accidentally installing an incompatible build
+
+---
+
+# 104. UPDATE SOURCE DETECTION
+
+Store installation channel metadata where possible.
+
+Possible values:
+
+* PLAY
+* GITHUB
+* DIRECT
+* UNKNOWN
+
+If UNKNOWN:
+
+Use safe update behaviour.
+
+---
+
+# 105. UPDATE FAILURE
+
+If download fails:
+
+**“అప్‌డేట్ డౌన్‌లోడ్ కాలేదు.”**
+
+Buttons:
+
+**మళ్లీ ప్రయత్నించు**
+
+**తర్వాత**
+
+The current application remains fully usable.
+
+---
+
+# 106. UPDATE INTERRUPTED
+
+If:
+
+* internet disappears
+* phone battery dies
+* app closes
+* download is interrupted
+
+The old application remains intact.
+
+Never replace the installed app until the new package is ready for installation.
+
+---
+
+# 107. UPDATE DURING TRANSACTION
+
+Never allow an update process to interfere with an active unsaved transaction.
+
+If user is currently entering:
+
+₹5,000
+
+and update notification appears:
+
+Do not interrupt.
+
+Show update later.
+
+---
+
+# 108. UPDATE DATA MIGRATION
+
+Every database schema change must have:
+
+**explicit migration strategy.**
+
+Example:
+
+v1 database
+→ v2 migration
+→ v3 migration
+
+Never simply delete and recreate the database.
+
+That could destroy the father's financial history.
+
+---
+
+# 109. MIGRATION FAILURE
+
+If migration fails:
+
+* preserve original database
+* do not wipe it
+* stop normal migration
+* show a recovery message
+* create/offer backup where possible
+* log diagnostic information
+
+---
+
+# 110. VERSIONING
+
+Use semantic versioning:
+
+```text
+MAJOR.MINOR.PATCH
+```
+
+Examples:
+
+**1.0.0**
+
+Initial production.
+
+**1.1.0**
+
+New feature.
+
+**1.1.1**
+
+Bug fix.
+
+---
+
+# 111. GITHUB RELEASE PIPELINE
+
+Use:
+
+# GitHub Actions
+
+Pipeline:
+
+```text
+Git commit
+↓
+Tests
+↓
+Build
+↓
+Sign release
+↓
+Generate APK
+↓
+Generate checksum
+↓
+Create GitHub Release
+↓
+Attach APK
+↓
+Publish release notes
+```
+
+No manually copying APKs whenever possible.
+
+---
+
+# 112. SIGNING
+
+Release signing credentials must NEVER be committed to GitHub.
+
+Use:
+
+* GitHub Actions secrets
+* secure keystore handling
+* protected release environment
+
+Debug signing must never be used for production.
+
+---
+
+# 113. CI TESTING
+
+Every release must run:
+
+### Unit tests
+
+* calculations
+* date logic
+* duplicate detection
+* validation
+* migrations
+
+### UI tests
+
+* navigation
+* entry creation
+* editing
+* deletion
+* confirmation
+
+### Database tests
+
+* insertion
+* update
+* deletion
+* migration
+* recovery
+
+---
+
+# 114. CALCULATION TEST MATRIX
+
+Test:
+
+₹0
+₹1
+₹999
+₹1,000
+₹1,00,000
+₹10,00,000
+large values
+
+Multiple entries.
+
+Edit.
+
+Delete.
+
+Restore.
+
+Ensure totals always match.
+
+---
+
+# 115. CONCURRENCY
+
+Even though this is primarily a single-user application, prevent inconsistent state from:
+
+* rapid double taps
+* simultaneous database operations
+* repeated save events
+* lifecycle recreation
+
+Use database transactions for logically atomic operations.
+
+---
+
+# 116. DATABASE TRANSACTIONS
+
+Example:
+
+Adding a worker payment may require:
+
+* ensuring worker exists
+* creating payment
+* associating daily page
+
+These related operations should execute atomically where necessary.
+
+Either all succeed or none do.
+
+---
+
+# 117. DATA CONSISTENCY
+
+Never allow:
+
+Payment exists for a non-existent work.
+
+Expense references deleted work.
+
+Daily page references a different work.
+
+Worker payment references invalid worker.
+
+Use database relationships and validation.
+
+---
+
+# 118. ORPHAN DATA
+
+Database integrity checks must prevent orphan records.
+
+If a Work is removed in a future administrative function:
+
+its dependent records must be handled according to a defined cascade/archive policy.
+
+But normal user flow should never permanently delete an entire Work casually.
+
+---
+
+# 119. WORK DELETION
+
+Do NOT expose a prominent:
+
+**Delete Work**
+
+button.
+
+Archive instead.
+
+If permanent deletion is ever implemented:
+
+Require:
+
+* confirmation
+* warning
+* backup recommendation
+* explicit final action
+
+---
+
+# 120. ACCIDENTAL GESTURES
+
+Do not use swipe-to-delete as the only deletion method.
+
+Page swiping is for navigation.
+
+Deletion should be explicit.
+
+This avoids catastrophic accidental financial deletion.
+
+---
+
+# 121. PAGE SWIPE CONFLICT
+
+Critical:
+
+Horizontal notebook page swipe must not conflict with:
+
+* horizontal text selection
+* buttons
+* dialogs
+* navigation
+
+Only enable page gesture in the page content region.
+
+Visible previous/next buttons remain available.
+
+---
+
+# 122. TOUCH TARGETS
+
+All critical controls should have large touch targets.
+
+Avoid tiny:
+
+* delete icons
+* back arrows
+* menu icons
+* close buttons
+
+---
+
+# 123. NETWORK FAILURE
+
+The application should never become a blank loading screen because GitHub is unreachable.
+
+If update check fails:
+
+Continue into the app normally.
+
+Network status must never block core functionality.
+
+---
+
+# 124. INTERNET PERMISSION
+
+Internet access is only required for:
+
+* GitHub update checks
+* optional future cloud backup
+* optional future integrations
+
+Core financial functionality remains local.
+
+---
+
+# 125. PRIVACY
+
+Do not upload:
+
+* worker names
+* payment amounts
+* work names
+* owner names
+* expenses
+
+to GitHub.
+
+GitHub is only the software update channel.
+
+The user's actual financial data stays on the device unless they explicitly choose backup/export functionality.
+
+---
+
+# 126. CRASH REPORTING
+
+Production crash reporting may be implemented later.
+
+If implemented:
+
+Never include raw financial transaction data in crash reports.
+
+For example, do not log:
+
+> “Ravi received ₹12,000”
+
+Instead log:
+
+> “LabourPaymentSaveFailed”
+
+---
+
+# 127. LOGGING
+
+Production logs must not contain sensitive financial data.
+
+Never log:
+
+* worker names
+* owner names
+* phone numbers
+* amounts
+* addresses
+
+---
+
+# 128. SECURITY
+
+Use secure storage where appropriate for:
+
+* sensitive settings
+* update metadata
+* optional app-lock information
+
+Do not hardcode secrets in the APK.
+
+---
+
+# 129. NO SERVER REQUIREMENT
+
+Version 1 does NOT require:
+
+* custom backend
+* database server
+* Firebase database
+* user authentication server
+
+This reduces:
+
+* cost
+* failure points
+* maintenance
+* privacy exposure
+* dependency on internet
+
+---
+
+# 130. WHY NOT FIREBASE AS THE PRIMARY DATABASE?
+
+Because the core problem is local notebook usage.
+
+A cloud-first architecture creates unnecessary failure modes:
+
+No internet
+→ can't save
+
+Server issue
+→ can't save
+
+Authentication issue
+→ can't open
+
+That is unacceptable.
+
+Local Room database is the authoritative store.
+
+---
+
+# 131. OPTIONAL FUTURE CLOUD BACKUP
+
+If cloud backup is added later:
+
+Local database remains primary.
+
+Cloud becomes:
+
+**backup / synchronization layer**
+
+not the only source of truth.
+
+---
+
+# 132. CRITICAL BACKUP EDGE CASE
+
+If cloud synchronization is eventually added, conflict resolution must be designed separately.
+
+Do NOT simply use:
+
+**last write wins**
+
+for financial records.
+
+Financial records need conflict-aware reconciliation.
+
+---
+
+# 133. SETTINGS
+
+Settings should contain:
+
+### బ్యాకప్
+
+### యాప్ లాక్
+
+### అక్షరాలు పెద్దగా
+
+### పేజీ animation
+
+### అప్‌డేట్
+
+### సహాయం
+
+### యాప్ గురించి
+
+No technical settings visible to the primary user.
+
+---
+
+# 134. UPDATE SETTINGS
+
+Screen:
+
+# అప్‌డేట్
+
+Show:
+
+**ప్రస్తుతం ఉన్న వెర్షన్: 1.3.0**
+
+**కొత్త వెర్షన్ ఉంటే తెలుసుకుంటాం**
+
+Button:
+
+**కొత్త వెర్షన్ ఉందా చూడు**
+
+If available:
+
+**కొత్త వెర్షన్ వచ్చింది**
+
+---
+
+# 135. MANUAL UPDATE CHECK
+
+The user can manually trigger update check.
+
+If none:
+
+**“మీ యాప్ కొత్త వెర్షన్‌లోనే ఉంది.”**
+
+This is a useful reassurance.
+
+---
+
+# 136. PLAY STORE UPDATE UX
+
+If Play Store version is available:
+
+Use native Play update mechanisms.
+
+Do not build a fake installer.
+
+Google's official Android documentation provides the In-App Update mechanism for this purpose.
+
+---
+
+# 137. GITHUB UPDATE UX
+
+If GitHub distribution:
+
+```text
+Check Release
+↓
+Latest compatible version
+↓
+Show release notes
+↓
+Download APK
+↓
+Verify
+↓
+Android installer
+↓
+User confirms
+↓
+Install
+```
+
+GitHub provides release and release-asset APIs that can support this architecture.
+
+---
+
+# 138. RELEASE CHANNEL SAFETY
+
+Never allow an ordinary user to enter an arbitrary GitHub repository.
+
+Repository configuration belongs in the application build configuration.
+
+This prevents malicious repository substitution.
+
+---
+
+# 139. ROLLBACK
+
+Every release must remain available on GitHub.
+
+If:
+
+v1.4.0 has a bug
+
+v1.3.0 remains available.
+
+However, normal update logic should not automatically downgrade.
+
+Downgrades should be developer/admin recovery operations because database migrations may make backward compatibility unsafe.
+
+---
+
+# 140. DATABASE MIGRATION RULE
+
+A new application version must be able to open all supported previous production databases.
+
+Before release:
+
+Test:
+
+v1 database → latest
+
+v2 database → latest
+
+v3 database → latest
+
+etc.
+
+---
+
+# 141. RELEASE BLOCKERS
+
+The release MUST be rejected if:
+
+* migration fails
+* totals are wrong
+* data disappears
+* APK signing is wrong
+* update installation fails
+* app crashes during startup
+* duplicate transactions can occur through rapid tapping
+* unsaved data disappears
+* Telugu text clips
+* maximum font size breaks layout
+
+---
+
+# 142. ACTUAL USER TESTING
+
+The father must be included in usability testing.
+
+Do NOT explain the interface first.
+
+Give him the app.
+
+Ask:
+
+### Task 1
+
+“రమేష్ ఇంటి పని రాయండి.”
+
+### Task 2
+
+“ఈ రోజు ₹5,000 వచ్చింది అని రాయండి.”
+
+### Task 3
+
+“ముగ్గురు కూలీలకు డబ్బు రాయండి.”
+
+### Task 4
+
+“నిన్నటి లెక్క చూడండి.”
+
+### Task 5
+
+“తప్పుగా రాసిన లెక్క మార్చండి.”
+
+### Task 6
+
+“పాత పని వెతకండి.”
+
+Record every hesitation.
+
+---
+
+# 143. UX FAILURE CLASSIFICATION
+
+If the user:
+
+### stops and asks what to press
+
+Potential navigation problem.
+
+### reads a label twice
+
+Potential language problem.
+
+### taps wrong button
+
+Potential hierarchy problem.
+
+### can't find old work
+
+Potential information architecture problem.
+
+### calculates manually
+
+Summary UI is failing.
+
+### asks whether data was saved
+
+Save feedback is failing.
+
+---
+
+# 144. PERFORMANCE TARGET
+
+App should feel immediate.
+
+Target:
+
+* app launch: fast
+* navigation: instant
+* saving: immediate
+* totals: immediate
+* page transitions: smooth
+* search: responsive
+* database operations: non-blocking UI
+
+No unnecessary loading spinner for local operations.
+
+---
+
+# 145. LOADING STATES
+
+For local database operations, avoid visible spinners when the operation is extremely fast.
+
+For actual longer operations:
+
+show a clear status.
+
+Never leave an empty screen with no explanation.
+
+---
+
+# 146. OFFLINE STATUS
+
+Do not show a giant:
+
+**OFFLINE**
+
+banner constantly.
+
+The app is expected to work offline.
+
+Only show connectivity information when relevant to:
+
+* update
+* cloud backup
+* future network feature
+
+---
+
+# 147. APP LOGO
+
+Concept:
+
+**Open notebook + masonry trowel / brick**
+
+Design requirements:
+
+* recognizable at 48dp
+* no tiny text
+* no complex illustration
+* works in monochrome
+* works as launcher icon
+* works as splash icon
+* visually associated with construction + notebook
+
+---
+
+# 148. BRAND
+
+Primary name:
+
+# మా పని పుస్తకం
+
+Tagline:
+
+**పని లెక్కలు సులభంగా**
+
+The brand should feel personal and local.
+
+---
+
+# 149. NOTIFICATION POLICY
+
+Do not send unnecessary notifications.
+
+Potential useful notifications:
+
+* important app update
+* backup reminder if explicitly enabled
+
+Never send:
+
+* advertisements
+* motivational messages
+* daily spam
+* unnecessary reminders
+
+---
+
+# 150. DATA LOSS PREVENTION
+
+The most important technical principle:
+
+# Never sacrifice existing financial data to fix an application error.
+
+If an operation is uncertain:
+
+preserve the existing database.
+
+---
+
+# 151. RECOVERY MODE
+
+If startup detects a serious database issue:
+
+Do not show a generic crash.
+
+Show:
+
+**“మీ పాత లెక్కలను కాపాడటానికి యాప్‌ను ఇప్పుడే మార్చడం లేదు.”**
+
+Then offer recovery/support mechanisms.
+
+---
+
+# 152. TEST DATA
+
+Development must include realistic datasets:
+
+### Small
+
+10 works
+100 entries
+
+### Medium
+
+50 works
+5,000 entries
+
+### Large
+
+200 works
+100,000+ entries
+
+Search and summary calculations must remain usable.
+
+---
+
+# 153. LONG TEXT TESTING
+
+Test:
+
+* extremely long work names
+* long notes
+* long worker names
+* long expense descriptions
+
+UI must wrap rather than clip.
+
+---
+
+# 154. SPECIAL CHARACTER TESTING
+
+Test Telugu:
+
+**రమేష్ గారి ఇల్లు**
+
+English:
+
+**Ramesh's House**
+
+Numbers:
+
+**123**
+
+Symbols:
+
+**& / - .**
+
+The app must not crash.
+
+---
+
+# 155. EMPTY INPUT
+
+Work name empty:
+
+**“పని పేరు రాయండి.”**
+
+Amount empty:
+
+**“ఎంత మొత్తం?”**
+
+Worker name empty:
+
+**“పేరు రాయండి.”**
+
+Do not show technical validation errors.
+
+---
+
+# 156. VERY LARGE AMOUNT
+
+If amount exceeds supported financial limit:
+
+Do not overflow.
+
+Show:
+
+**“ఈ మొత్తం చాలా పెద్దది. సరైన మొత్తాన్ని రాయండి.”**
+
+The internal numeric type must have a safe documented upper bound.
+
+---
+
+# 157. DATE LIMIT
+
+Do not arbitrarily restrict historical dates unless technically necessary.
+
+The user may need to enter an old notebook record.
+
+Support a reasonable historical range.
+
+---
+
+# 158. TIME CONFLICT
+
+The application must not depend on exact clock time for financial ordering.
+
+Date is the primary user-facing grouping.
+
+Timestamp is metadata.
+
+---
+
+# 159. SAME-DATE SORTING
+
+Within a daily page:
+
+Prefer logical category grouping:
+
+1. Work notes
+2. Income
+3. Labour
+4. Expenses
+5. Summary
+
+Within a category, newest entries can appear first or preserve creation order.
+
+Do not create confusing mixed chronological lists.
+
+---
+
+# 160. ENTRY IDENTIFICATION
+
+Every entry should visually show enough information to distinguish it.
+
+Example:
+
+**రవి — ₹800**
+
+not merely:
+
+**₹800**
+
+Expense:
+
+**టీ — ₹100**
+
+not merely:
+
+**₹100**
+
+---
+
+# 161. CONFIRMATION LANGUAGE
+
+Keep confirmation questions short.
+
+Bad:
+
+**“Are you absolutely sure that you wish to permanently delete this financial transaction?”**
+
+Good:
+
+**“ఈ లెక్కను తీసేయాలా?”**
+
+---
+
+# 162. SUCCESS FEEDBACK
+
+After saving:
+
+Small:
+
+**“దాచాం ✓”**
+
+Do not interrupt the user with large dialogs.
+
+---
+
+# 163. ERROR FEEDBACK
+
+Errors should:
+
+* explain what happened
+* say what to do next
+* preserve input where possible
+
+---
+
+# 164. NO TECHNICAL JARGON
+
+Never expose:
+
+* API
+* database
+* repository
+* migration
+* cache
+* checksum
+* release
+* APK
+
+to the primary user.
+
+These belong to developer/admin interfaces.
+
+---
+
+# 165. DEVELOPER ADMIN INFORMATION
+
+Under:
+
+**యాప్ గురించి**
+
+developer information can include:
+
+* version
+* build number
+* update channel
+
+But keep it secondary.
+
+---
+
+# 166. VERSION DISPLAY
+
+User-facing:
+
+**వెర్షన్ 1.4.0**
+
+not:
+
+**versionCode 140003**
+
+---
+
+# 167. SOURCE CONTROL
+
+Git repository structure should separate:
+
+```text
+app/
+core/
+data/
+domain/
+ui/
+designsystem/
+testing/
+```
+
+Exact package structure can be refined during implementation.
+
+---
+
+# 168. TESTING PYRAMID
+
+Required:
+
+### Unit tests
+
+Highest coverage.
+
+### Repository/database tests
+
+Data integrity.
+
+### ViewModel tests
+
+State transitions.
+
+### UI tests
+
+Critical workflows.
+
+### Manual usability tests
+
+Actual father.
+
+---
+
+# 169. GOLDEN WORKFLOWS
+
+These must never break.
+
+## Workflow A
+
+Create work → add income → see total.
+
+## Workflow B
+
+Create work → add workers → see labour total.
+
+## Workflow C
+
+Add expense → see remaining.
+
+## Workflow D
+
+Two works same day → verify isolation.
+
+## Workflow E
+
+Edit entry → verify recalculation.
+
+## Workflow F
+
+Delete → undo → verify restoration.
+
+## Workflow G
+
+Close work → add payment later.
+
+## Workflow H
+
+Restart app → verify data.
+
+## Workflow I
+
+Offline → perform complete workflow.
+
+## Workflow J
+
+Update application → verify old data remains.
+
+---
+
+# 170. RELEASE CHECKLIST
+
+Before every production release:
+
+### Data
+
+* [ ] Existing database opens
+* [ ] Migrations pass
+* [ ] No records disappear
+* [ ] Totals correct
+
+### UX
+
+* [ ] Telugu labels checked by native speaker
+* [ ] No clipped text
+* [ ] Large font tested
+* [ ] Touch targets tested
+
+### Updates
+
+* [ ] GitHub release created
+* [ ] APK signed
+* [ ] checksum generated
+* [ ] update detection works
+* [ ] installer flow works
+* [ ] Play Store update works
+
+### Reliability
+
+* [ ] offline tested
+* [ ] force-close tested
+* [ ] restart tested
+* [ ] low storage tested
+* [ ] interrupted update tested
+* [ ] backup/restore tested
+
+---
+
+# 171. WHAT ANTIGRAVITY MUST NOT DO
+
+Do NOT:
+
+* add unnecessary dashboards
+* add login
+* add cloud dependency
+* add advertisements
+* add complicated accounting terminology
+* force owner information
+* force worker registration
+* make internet mandatory
+* make swipe gestures the only navigation
+* delete records silently
+* automatically merge financial entries
+* automatically classify uncertain voice commands
+* automatically overwrite backups
+* automatically downgrade the application
+* replace database during failed migration
+* expose technical errors to the father
+
+---
+
+# 172. IMPLEMENTATION PRIORITY
+
+## P0 — Absolutely mandatory
+
+* Kotlin
+* Jetpack Compose
+* Room
+* offline-first architecture
+* Work
+* Daily Page
+* Income
+* Labour
+* Expense
+* automatic totals
+* multiple works
+* date navigation
+* edit
+* delete
+* undo
+* backup
+* database migration
+* Telugu UI
+* elderly UX
+
+## P1 — Production-grade
+
+* GitHub update system
+* Play In-App Updates
+* release pipeline
+* checksum validation
+* voice input
+* app lock
+* PDF/share summary
+
+## P2 — Future
+
+* cloud backup
+* multi-device sync
+* family sharing
+* material tracking
+* contract amounts
+* advanced reports
+
+---
+
+# 173. FINAL ARCHITECTURE
+
+```text
+                 ┌──────────────────────┐
+                 │     Android App      │
+                 │   Kotlin + Compose   │
+                 └──────────┬───────────┘
+                            │
+                       ViewModels
+                            │
+                       Use Cases
+                            │
+                       Repository
+                            │
+                    ┌───────▼───────┐
+                    │     Room      │
+                    │   SQLite DB   │
+                    └───────────────┘
+                            │
+                     Local Financial
+                          Records
+
+
+        UPDATE CHANNELS
+               │
+       ┌───────┴────────┐
+       │                │
+   Google Play      GitHub Releases
+       │                │
+ Play In-App       APK Update Flow
+   Updates               │
+                         │
+                   Android Installer
+```
+
+---
+
+# 174. FINAL PRODUCT RULE
+
+The architecture can be sophisticated.
+
+The user experience cannot be.
+
+Under the hood:
+
+**Kotlin + Compose + Room + Coroutines + Hilt + MVVM + CI/CD + migrations + checksums + release automation**
+
+On the screen:
+
+**పని**
+
+**తేదీ**
+
+**వచ్చిన డబ్బు**
+
+**కూలీల డబ్బు**
+
+**ఖర్చు**
+
+**మిగిలింది**
+
+That difference is intentional.
+
+---
+
+# 175. FINAL ACCEPTANCE CRITERION
+
+The app is production-ready only when all three conditions are simultaneously true:
+
+### Condition 1 — Technical
+
+The application survives:
+
+* offline usage
+* crashes
+* restarts
+* migrations
+* updates
+* database changes
+* large datasets
+* interrupted downloads
+
+without losing financial data.
+
+### Condition 2 — Mathematical
+
+Every total can be independently verified from the underlying entries.
+
+### Condition 3 — Human
+
+The actual father can use the core workflow without somebody standing beside him explaining the application.
+
+If any one of these fails:
+
+# DO NOT RELEASE.
+
+---
+
+# PRODUCT NORTH STAR
+
+## “పుస్తకం లాగే సులభం. లెక్కల్లో కంప్యూటర్ లాగే కచ్చితం.”
+
+The father should never feel that he has started using accounting software.
+
+He should feel that **his old notebook became smarter.**
