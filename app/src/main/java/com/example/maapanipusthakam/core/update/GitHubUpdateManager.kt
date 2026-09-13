@@ -26,8 +26,8 @@ object GitHubUpdateManager {
 
     const val CURRENT_VERSION = "1.0.0"
     // Configured official repository for OTA distribution
-    private const val REPO_OWNER = "masonbook"
-    private const val REPO_NAME = "maa-pani-pusthakam"
+    private const val REPO_OWNER = "santjsx"
+    private const val REPO_NAME = "workbook-app"
     private const val GITHUB_API_URL = "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest"
 
     private val json = Json { ignoreUnknownKeys = true }
