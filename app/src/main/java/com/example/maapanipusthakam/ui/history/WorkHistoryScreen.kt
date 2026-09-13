@@ -20,10 +20,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -35,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,6 +65,7 @@ import com.example.maapanipusthakam.theme.ReceivedGreenLight
 import com.example.maapanipusthakam.theme.RemainingWarm
 import com.example.maapanipusthakam.ui.components.BigButton
 import com.example.maapanipusthakam.ui.components.NotebookCard
+import com.example.maapanipusthakam.ui.components.SimpleConfirmDialog
 
 @Composable
 fun WorkHistoryScreen(
@@ -70,6 +74,7 @@ fun WorkHistoryScreen(
 ) {
     val workRepo = remember { MaaPaniApp.instance.workRepository }
     var selectedTabIndex by remember { mutableIntStateOf(0) } // 0: జరుగుతున్నవి, 1: పూర్తయినవి
+    var workToDelete by remember { mutableStateOf<Work?>(null) }
 
     val activeWorksFlow = remember(workRepo) { workRepo.getActiveWorks() }
     val activeWorks by activeWorksFlow.collectAsState(initial = emptyList())
@@ -77,6 +82,23 @@ fun WorkHistoryScreen(
     val completedWorks by completedWorksFlow.collectAsState(initial = emptyList())
 
     val displayedWorks = if (selectedTabIndex == 0) activeWorks else completedWorks
+
+    if (workToDelete != null) {
+        val targetWork = workToDelete!!
+        SimpleConfirmDialog(
+            title = "ఈ పనిని తీసివేయాలా?",
+            message = "\"${targetWork.name}\" పని మరియు దీనికి సంబంధించిన అన్ని రోజువారీ లెక్కలు, కూలీల వివరాలు పూర్తిగా తొలగించబడతాయి. ఇది మళ్లీ తిరిగి రాదు.",
+            confirmButtonText = "తీసివెయ్యి",
+            dismissButtonText = "వద్దు",
+            isDestructive = true,
+            onConfirm = {
+                val id = targetWork.id
+                workToDelete = null
+                workRepo.deleteWork(id)
+            },
+            onDismiss = { workToDelete = null }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -175,7 +197,8 @@ fun WorkHistoryScreen(
                 items(displayedWorks, key = { it.id }) { work ->
                     WorkHistoryCard(
                         work = work,
-                        onClick = { onOpenWork(work.id) }
+                        onClick = { onOpenWork(work.id) },
+                        onDeleteClick = { workToDelete = work }
                     )
                 }
                 item {
@@ -196,7 +219,8 @@ fun WorkHistoryScreen(
 @Composable
 fun WorkHistoryCard(
     work: Work,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val workRepo = remember { MaaPaniApp.instance.workRepository }
     val summaryFlow = remember(workRepo, work.id) { workRepo.getWorkSummary(work.id) }
@@ -227,17 +251,33 @@ fun WorkHistoryCard(
                     }
                 }
 
-                Surface(
-                    color = if (work.status == WorkStatus.COMPLETED) ReceivedGreenLight else PaperCard,
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, DividerColor)
-                ) {
-                    Text(
-                        text = if (work.status == WorkStatus.COMPLETED) "✓ పూర్తయ్యింది" else "ఇంకా జరుగుతోంది",
-                        color = if (work.status == WorkStatus.COMPLETED) ReceivedGreen else BrickTerracotta,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = if (work.status == WorkStatus.COMPLETED) ReceivedGreenLight else PaperCard,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, DividerColor)
+                    ) {
+                        Text(
+                            text = if (work.status == WorkStatus.COMPLETED) "✓ పూర్తయ్యింది" else "ఇంకా జరుగుతోంది",
+                            color = if (work.status == WorkStatus.COMPLETED) ReceivedGreen else BrickTerracotta,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "పనిని తీసివెయ్యి",
+                            tint = ExpenseRed.copy(alpha = 0.85f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 

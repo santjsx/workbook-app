@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -155,6 +156,7 @@ fun WorkNotebookScreen(
     var showAddExpense by remember { mutableStateOf(false) }
     var showFutureDateWarning by remember { mutableStateOf<Long?>(null) }
     var showCompleteConfirm by remember { mutableStateOf(false) }
+    var showDeleteWorkConfirm by remember { mutableStateOf(false) }
     var showEditDescriptionDialog by remember { mutableStateOf(false) }
 
     // Selection for editing / deleting
@@ -255,6 +257,23 @@ fun WorkNotebookScreen(
                 itemToDeleteConfirm = null
             },
             onDismiss = { itemToDeleteConfirm = null }
+        )
+    }
+
+    // Delete entire work confirmation
+    if (showDeleteWorkConfirm && work != null) {
+        SimpleConfirmDialog(
+            title = "ఈ పనిని తీసివేయాలా?",
+            message = "\"${work!!.name}\" పని మరియు దీనికి సంబంధించిన అన్ని రోజువారీ లెక్కలు, కూలీల వివరాలు పూర్తిగా తొలగించబడతాయి. ఇది మళ్లీ తిరిగి రాదు.",
+            confirmButtonText = "తీసివెయ్యి",
+            dismissButtonText = "వద్దు",
+            isDestructive = true,
+            onConfirm = {
+                showDeleteWorkConfirm = false
+                workRepo.deleteWork(workId)
+                onNavigateBack()
+            },
+            onDismiss = { showDeleteWorkConfirm = false }
         )
     }
 
@@ -463,6 +482,15 @@ fun WorkNotebookScreen(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "వెనక్కి",
                             tint = InkPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showDeleteWorkConfirm = true }) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "పనిని తీసివెయ్యి",
+                            tint = ExpenseRed
                         )
                     }
                 },

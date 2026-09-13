@@ -133,6 +133,16 @@ class WorkRepository(private val dbHelper: AppDbHelper) {
         dbHelper.notifyDataChanged()
     }
 
+    /**
+     * Permanently deletes a work and cascades deletion to its daily_pages,
+     * income_entries, labour_payments, and expenses via foreign key CASCADE.
+     */
+    fun deleteWork(workId: Long): Boolean {
+        val rows = dbHelper.writableDatabase.delete("works", "id = ?", arrayOf(workId.toString()))
+        dbHelper.notifyDataChanged()
+        return rows > 0
+    }
+
     fun getWorkSummary(workId: Long): Flow<WorkSummary> {
         return dbHelper.dataChangeEvents.map {
             withContext(Dispatchers.IO) {
