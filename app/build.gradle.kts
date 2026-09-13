@@ -15,6 +15,10 @@ android {
         versionName = "1.0"
     }
 
+    base {
+        archivesName.set("workbook")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
