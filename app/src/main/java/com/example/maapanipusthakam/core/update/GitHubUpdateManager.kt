@@ -24,7 +24,7 @@ sealed class UpdateCheckResult {
 
 object GitHubUpdateManager {
 
-    const val CURRENT_VERSION = "1.0.0"
+    const val CURRENT_VERSION = "1.1.0"
     // Configured official repository for OTA distribution
     private const val REPO_OWNER = "santjsx"
     private const val REPO_NAME = "workbook-app"
